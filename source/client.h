@@ -12,14 +12,18 @@
 #include <exception>
 #include <cstring>
 #include <unistd.h>
+#include <errno.h>
 
 namespace networking
 {
-	struct sockaddr_in address;
-	int socketFD;
+	extern bool verbose;
+
+	extern struct sockaddr_in address;
+	extern int socketFD;
 
 	int initClient(uint16_t port, int family, int protocol);
 	int connectToServer(char serverAddress[]);
+	int writeToServer(char buffer[]);
 }
 
 #endif //CLIENT_H

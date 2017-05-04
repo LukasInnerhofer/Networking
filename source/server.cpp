@@ -1,82 +1,66 @@
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <cstring>
-#include <iostream>
-#include <exception>
-#include <stdlib.h>
-#include <stdio.h>
-#include <errno.h>
+#include "server.h"
 
-int main(int argc, char *argv[])
+namespace networking
 {
-		int socket_fd, newsocket_fd, message_length;
-		socklen_t client_length;
-		uint16_t port;
-		char buffer[256];
+	bool verbose = false;
 
-		struct sockaddr_in server_address, client_address;
+	int socketFD, newSocketFD;
+	socklen_t clientLength;
+	
+	struct sockaddr_in serverAddress, clientAddress;
 
-		if(argc != 2)
+	int initServer(uint16_t port, int family, int protocol)
+	{
+		socketFD = socket(family, protocol, 0);
+		if(socketFD < 0)
 		{
-			std::cerr << "\nUsage: " << argv[0] << " <server port>\n";
-			return 1;
-		}
-		try
-		{
-			port = std::stoi(argv[1]);
-		}
-		catch(std::invalid_argument e)
-		{
-			std::cerr << "\nError reading port: " << e.what() << std::endl;
-			return 1;
+			if(verbose)
+				std::cerr << "\nError opening socket: " << strerror(errno) << std::endl;
+			return errno;
 		}
 		
-		socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-		if(socket_fd < 0)
+		memset(&serverAddress, '0', sizeof(serverAddress));
+	
+		serverAddress.sin_family = family;
+		serverAddress.sin_port = htons(port);
+		serverAddress.sin_addr.s_addr = INADDR_ANY;
+
+		if(bind(socketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0)
 		{
-			std::cerr << "\nError opening socket\n";
-			return 1;
-		}
-
-		std::memset((char *)&server_address, '0', sizeof(server_address));
-
-		server_address.sin_family = AF_INET;
-		server_address.sin_port = htons(port);
-		server_address.sin_addr.s_addr = INADDR_ANY;
-		
-
-		if(bind(socket_fd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
-		{
-			std::cerr << "\nError trying to bind server to socket: " << errno;
-			return 1;
-		}	
-
-		listen(socket_fd, 5);
-
-		client_length = sizeof(client_address);
-		while(true)
-		{	
-			newsocket_fd = accept(socket_fd, (struct sockaddr *)&client_address, &client_length);
-			if(newsocket_fd < 0)
-			{
-				std::cerr << "\nError trying to accept a connection.\n";
-				return 1;
-			}
-		
-			std::memset(&buffer, '0', sizeof(buffer));
-			message_length = read(newsocket_fd, buffer, sizeof(buffer) - 1);
-			if(message_length < 0)
-			{
-				std::cerr << "\nError reading from socket\n";
-				return 1;
-			}
-		
-			std::cout << std::endl << buffer << std::endl;
+			if(verbose)
+				std::cerr << "\nError binding socket: " << strerror(errno) << std::endl;
+			return errno;
 		}
 		
+		listen(socketFD, 5);
+		
+		clientLength = sizeof(clientAddress);
+
 		return 0;
-}
+	}
+	
+	int acceptConnection()
+	{
+		newSocketFD = accept(socketFD, (struct sockaddr *)&clientAddress, &clientLength);
+		if(newSocketFD < 0)
+		{
+			if(verbose)
+				std::cerr << "\nError accepting connection: " << strerror(errno) << std::endl;
+			return errno;
+		}
+		return 0;
+	}
 
+	int readFromClient(char buffer[])
+	{
+		memset(&buffer, '0', sizeof(buffer));
+		if(read(newSocketFD, buffer, sizeof(buffer) - 1) < 0)
+		{
+			if(verbose)
+				std::cerr << "\nError reading from client: " << strerror(errno) << std::endl;
+			return errno;
+		}
+		return 0;
+	}
+}
 		

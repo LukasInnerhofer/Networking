@@ -2,80 +2,57 @@
 
 namespace networking
 {
-	int initClient(uint16_t port, int family, int protocol)
+	bool verbose = false;
+
+	struct sockaddr_in address;
+	int socketFD;
+
+	int initClient(const uint16_t port, const int family, const int protocol)
 	{
 		socketFD = socket(family, protocol, 0);
 		if(socketFD < 0)
 		{
+			if(verbose)
+				std::cerr << "\nError opening socket: " << strerror(errno) << std::endl;
 			return errno;
 		}
 
 		memset(&address, '0', sizeof(address));
 
 		address.sin_family = family;
-		address.sin_port = port;
+		address.sin_port = htons(port);
 		
 		return 0;
 	}
 
-	int connectToServer(char serverIPAddress[])
+	int connectToServer(char serverAddress[])
 	{
-		if(inet_pton(address.sin_family, 
-	}
-}
+		if(inet_pton(address.sin_family, serverAddress, &address.sin_addr) <= 0)
+		{
+			if(verbose)
+				std::cerr << "\nError reading server address: " << strerror(errno) << std::endl;
+			return errno;
+		}
 
-int main(int argc, char *argv[])
-{
-	int socket_fd, port, message_length;
-	struct sockaddr_in server_address;
-	char buffer[256];
+		if(connect(socketFD, (struct sockaddr *)&address, sizeof(address)) < 0)
+		{
+			if(verbose)
+				std::cerr << "\nError connecting to server: " << strerror(errno) << std::endl;
+			return errno;
+		}
 
-	if(argc < 3)
-	{
-		std::cerr << "\nUsage: " << argv[0] << " <client port> <server ip address>\n";
-		return 1;
-	}
-	try
-	{
-		port = std::stoi(argv[1]);
-	}
-	catch(std::invalid_argument e)
-	{
-		std::cerr << "\nError reading port: " << e.what() << std::endl;
-		return 1;
+		return 0;
 	}
 
-	socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-	if(socket_fd < 0)
+	int writeToServer(char buffer[])
 	{
-		std::cerr << "\nError creating socket: " << errno << std::endl;
-		return 1;
-	}
-	
-	memset(&server_address, '0', sizeof(server_address));
+		if(write(socketFD, buffer, sizeof(buffer) - 1) < 0)
+		{
+			if(verbose)
+				std::cerr << "\nError writing to server: " << strerror(errno) << std::endl;
+			return errno;
+		}
 
-	server_address.sin_family = AF_INET;
-	server_address.sin_port = htons(port);
-
-	if(inet_pton(AF_INET, argv[2], &server_address.sin_addr) <= 0)
-	{
-		std::cerr << "\nError reading server ip address: " << errno << std::endl;
-		return 1;
+		return 0;
 	}
-
-	if(connect(socket_fd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
-	{
-		std::cerr << "\nError trying to connect to " << argv[2] << ": " << errno << std::endl;
-		return 1;
-	}
-	
-	buffer[0]='h';
-	message_length = write(socket_fd, buffer, sizeof(buffer) - 1);
-	if(message_length < 0)
-	{
-		std::cerr << "\nError trying to write to server: " << errno << std::endl;
-		return 1;
-	}
-	
-	return 0;
 }
