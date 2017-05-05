@@ -23,7 +23,7 @@ namespace networking
 
 	int initClient(uint16_t port, int family, int protocol);
 	int connectToServer(char serverAddress[]);
-	int writeToServer(char buffer[]);
+	int writeToServer(char buffer[], size_t length);
 }
 
 #endif //CLIENT_H

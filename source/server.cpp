@@ -51,10 +51,10 @@ namespace networking
 		return 0;
 	}
 
-	int readFromClient(char buffer[])
+	int readFromClient(char buffer[], size_t length)
 	{
-		memset(&buffer, '0', sizeof(buffer));
-		if(read(newSocketFD, buffer, sizeof(buffer) - 1) < 0)
+		memset(buffer, '0', length);
+		if(read(newSocketFD, buffer, length - 1) < 0)
 		{
 			if(verbose)
 				std::cerr << "\nError reading from client: " << strerror(errno) << std::endl;

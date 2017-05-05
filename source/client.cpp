@@ -44,9 +44,9 @@ namespace networking
 		return 0;
 	}
 
-	int writeToServer(char buffer[])
+	int writeToServer(char buffer[], size_t length)
 	{
-		if(write(socketFD, buffer, sizeof(buffer) - 1) < 0)
+		if(write(socketFD, buffer, length - 1) < 0)
 		{
 			if(verbose)
 				std::cerr << "\nError writing to server: " << strerror(errno) << std::endl;
